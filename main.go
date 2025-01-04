@@ -3,30 +3,20 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
-	"github.com/spf13/viper"
 	"github.com/twilio/twilio-go"
 	v2010 "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
-// Initialize configuration
-func initConfig() {
-	viper.SetConfigName("config") // Config file name (without extension)
-	viper.SetConfigType("yaml")   // Config file type
-	viper.AddConfigPath(".")      // Look in the current directory
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file: %s", err)
-	}
-}
-
 // Send SMS using Twilio
 func sendSMS(to, message string) error {
 	// Validate configuration
-	accountSID := viper.GetString("twilio.account_sid")
-	authToken := viper.GetString("twilio.auth_token")
-	fromNumber := viper.GetString("twilio.from_number")
+	accountSID := os.Getenv("ACCOUNT_SID")
+	authToken := os.Getenv("AUTH_TOKEN")
+	fromNumber := os.Getenv("FROM_NUMBER")
 
 	if accountSID == "" || authToken == "" || fromNumber == "" {
 		return fmt.Errorf("Twilio configuration is incomplete")
@@ -55,7 +45,10 @@ func sendSMS(to, message string) error {
 
 // Function to be triggered by cron job
 func scheduledSMS() {
-	err := sendSMS(viper.GetString("twilio.to_number"), viper.GetString("twilio.message"))
+	toNumber := os.Getenv("TO_NUMBER")
+	message := os.Getenv("MESSAGE")
+
+	err := sendSMS(toNumber, message)
 	if err != nil {
 		fmt.Println("Error sending SMS:", err)
 	} else {
@@ -65,11 +58,15 @@ func scheduledSMS() {
 
 // Main function
 func main() {
-	initConfig() // Load configuration
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 
 	// Set up cron job to run every 30 seconds
 	c := cron.New()
-	_, err := c.AddFunc("@every 6h", scheduledSMS) // Runs the scheduledSMS function every 6 hour
+	_, err = c.AddFunc("@every 6h", scheduledSMS) // Runs the scheduledSMS function every 6 hour
 	if err != nil {
 		log.Fatalf("Error setting up cron job: %v", err)
 	}
