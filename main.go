@@ -59,9 +59,10 @@ func scheduledSMS() {
 // Main function
 func main() {
 
+	// Attempt to load environment variables from .env
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Println(".env file not found. Proceeding with environment variables from the platform.")
 	}
 
 	// Set up cron job to run every 30 seconds
